@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Bilibili Blacklist
 // @namespace    http://tampermonkey.net/
-// @version      0.7.5
+// @version      0.8.0
 // @description  不可逆的默认屏蔽首页广告,并在左下角添加了屏蔽词功能,并能自定义每个屏蔽词的范围(真的会有人需要这种自定义吗)
 // @author       Aporia
 // @match        *://*.bilibili.com/*
@@ -14,8 +14,6 @@
 // @run-at document-end
 
 // ==/UserScript==
-
-
 (function() {
     // Define page types
     let pageTypes = ['searchPage', 'mainPage', 'leaderboard', 'timeLine', 'recommand', 'reply'];
@@ -39,49 +37,99 @@
         blacklist = JSON.parse(blacklist);
     }
 
-    let block_blacklist = function(){
-
+    let blockPageTypes = {
+        searchPage: {
+            urlIncludes: 'search.bilibili.com',
+            matchPairs: [
+                { matchSelector: "div.bili-video-card__info--right", parentSelector: 'div.bili-video-card' },
+                { matchSelector: "div.media-card-content", parentSelector: "div.media-card" },
+            ],
+            cssModifications: {} 
+        },
+        mainPage: {
+            urlIncludes: 'www.bilibili.com',
+            matchPairs: [
+                { matchSelector: "div.bili-video-card__info--right", parentSelector: "div.bili-video-card" },
+                { matchSelector: "div.bili-video-card__info--right", parentSelector: "div.feed-card" },
+                { matchSelector: "div.bili-video-card__info--right", parentSelector: "div.floor-single-card" },
+            ],
+            cssModifications: '.recommended-container_floor-aside .container>*:nth-of-type(n + 8) {margin-top: 0px !important;}'
+        },
+        leaderboard: {
+            urlIncludes: 'www.bilibili.com/v/popular',
+            matchPairs: [
+                { matchSelector: "div.video-card__info", parentSelector: "div.video-card" },
+                ],
+        },
+        timeLine: {
+            urlIncludes: 't.bilibili.com',
+            matchPairs: [
+                { matchSelector: "div.bili-dyn-content", parentSelector: "div.bili-dyn-list__item" },
+                ],
+        },
+        recommand: {
+            urlIncludes: 'www.bilibili.com/video/BV',
+            matchPairs: [
+                { matchSelector: "div.info", parentSelector: "div.video-page-card-small" },
+                ],
+        },
+        reply: {
+            urlIncludes: 'www.bilibili.com/video/BV',
+            matchPairs: [
+                { matchSelector: "div.root-reply", parentSelector: "div.content-warp" },
+                { matchSelector: "span.reply-content-container.sub-reply-content", parentSelector: "div.sub-reply-item" },
+                ],
+        },
+    };
+    
+    let prepareRegex = function() {
+        let pageInfo;
+    
+        // Find the page info for the current URL
+        for (let pageType in blockPageTypes) {
+            if (window.location.href.includes(blockPageTypes[pageType].urlIncludes)) {
+                pageInfo = blockPageTypes[pageType];
+                pageInfo.name = pageType;
+                break;
+            }
+        }
+    
+        if (pageInfo) {
+            // Filter the blacklist to get the keywords that should be active on this page
+            let activeKeywords = blacklist.filter(entry => entry[pageInfo.name])
+                                          .map(entry => entry.keyword.replace(/[.*+\-?^${}()|[\]\\]/g, '\\$&'))
+                                          .join('|');
+    
+            if (activeKeywords) {
+                // Create a custom jQuery expression to match elements by regular expression
+                $.expr[":"].containsRegex = $.expr.createPseudo(function(arg) {
+                    var regexp = new RegExp(arg, 'i');
+                    return function(elem) {
+                        return regexp.test($(elem).text());
+                    };
+                });
+                return { pageInfo: pageInfo, containsString: ":containsRegex('" + activeKeywords + "')" };
+            }
+        }
+        return null;
+    }
+    
+    let block_blacklist = function(prep){
         // Block AD
         $("svg.bili-video-card__info--ad").parents("div.bili-video-card").hide();
         $("svg.bili-video-card__info--ad").parents("div.feed-card").hide();
 
-        blacklist.forEach(function(entry){
-            let containsString = ":contains('" + entry.keyword + "')";
-
-            // Block search page
-            if (entry.searchPage) {
-                $("div.bili-video-card__info--right" + containsString).parents('div.bili-video-card:not(.is-rcmd)').hide();
-                $("div.media-card-content" + containsString).parents('div.media-card').hide();
+        if (prep) {
+            // Now hide all matching elements on the page
+            prep.pageInfo.matchPairs.forEach(pair => {
+                $(pair.matchSelector + prep.containsString).parents(pair.parentSelector).hide();
+            });
+    
+            // Apply CSS modifications
+            if(prep.pageInfo.cssModifications){
+                $('<style>').prop('type', 'text/css').html(prep.pageInfo.cssModifications).appendTo('head');
             }
-
-            // Block main page
-            if (entry.mainPage) {
-                $("div.bili-video-card__info--right" + containsString).parents("div.bili-video-card.is-rcmd").hide();
-                $("div.bili-video-card__info--right" + containsString).parents("div.feed-card").hide();
-                $("div.bili-video-card__info--right" + containsString).parents("div.floor-single-card").hide();
-            }
-
-            // Block leaderboard
-            if (entry.leaderboard) {
-                $("div.video-card__info" + containsString).parents("div.video-card").hide();
-            }
-
-            // Block timeline pages
-            if (entry.timeLine) {
-                $("div.bili-dyn-content" + containsString).parents("div.bili-dyn-list__item").hide();
-            }
-
-            // Block recommands
-            if (entry.recommand) {
-                $("div.info" + containsString).parents("div.video-page-card-small").hide();
-            }
-
-            // Block reply
-            if (entry.reply) {
-                $("div.root-reply" + containsString).parents("div.content-warp").hide();
-                $("span.reply-content-container.sub-reply-content" + containsString).parents("div.sub-reply-item").hide();
-            }
-        });
+        }
     }
 
     // Create the floating "B" button
@@ -166,8 +214,8 @@
                     margin: '20px 0'
                 }
             });
-
             modal.append(title);
+
 
             // Add exit button
             let exitButton = $('<button>', {
@@ -279,16 +327,24 @@
         }
     });
 
+    let prep = prepareRegex();
     $('body').append(buttonB);
     $('body').append(buttonE);
 
     // Run the initial blacklist block
-    block_blacklist();
+    block_blacklist(prep);
 
-    $('<style>').prop('type', 'text/css').html('.recommended-container_floor-aside .container>*:nth-of-type(n + 8) {margin-top: 0px !important;}').appendTo('head');
+    let running = false;
+const observer = new MutationObserver(function(mutationsList, observer) {
+    if (!running) {
+        running = true;
+        requestAnimationFrame(function() {
+            block_blacklist(prep);
+            running = false;
+        });
+    }
+});
 
+observer.observe(document.body, { childList: true, subtree: true });
 
-    document.addEventListener('DOMNodeInserted', function() {
-        block_blacklist();
-    }, false);
 })();
