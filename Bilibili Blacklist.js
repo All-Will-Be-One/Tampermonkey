@@ -24,6 +24,7 @@
     if (blacklist === undefined) {
         blacklist = [{
             keyword: "原神",
+            isRegexp: false,
             searchPage: true,
             mainPage: true,
             leaderboard: true,
@@ -35,7 +36,16 @@
     } else {
         // Parse the stored JSON string back to a JavaScript object
         blacklist = JSON.parse(blacklist);
+        // Upgrade script: add the 'isRegexp' property to all items in the blacklist
+    for (let i = 0; i < blacklist.length; i++) {
+        if (!('isRegexp' in blacklist[i])) {
+            blacklist[i].isRegexp = false;
+        }
     }
+
+    // Save the updated blacklist back to GM storage
+    GM_setValue('blacklist', JSON.stringify(blacklist));
+}
 
     let blockPageTypes = {
         searchPage: {
@@ -97,7 +107,7 @@
         if (pageInfo) {
             // Filter the blacklist to get the keywords that should be active on this page
             let activeKeywords = blacklist.filter(entry => entry[pageInfo.name])
-//                                        .map(entry => entry.keyword.replace(/[.*+\-?^${}()|[\]\\]/g, '\\$&'))
+                                          .map(entry => entry.isRegexp ? entry.keyword : entry.keyword.replace(/[.*+\-?^${}()|[\]\\]/g, '\\$&'))
                                           .join('|');
     
             if (activeKeywords) {
@@ -152,6 +162,7 @@
                 // Add the keyword with all pages selected by default
                 blacklist.push({
                     keyword: keyword,
+                    isRegexp: false,
                     searchPage: true,
                     mainPage: true,
                     leaderboard: true,
@@ -253,6 +264,27 @@
                 });
 
                 item.append(keyword);
+
+                let regexpCheckbox = $('<input>', {
+                    type: 'checkbox',
+                    checked: entry.isRegexp,
+                    change: function() {
+                        // Update the blacklist when the checkbox is toggled
+                        entry.isRegexp = this.checked;
+                        GM_setValue('blacklist', JSON.stringify(blacklist));
+                        block_blacklist();
+                    }
+                });
+                
+                let label = $('<label>', {
+                    text: '正则表达式',
+                    css: {
+                        marginLeft: '10px'
+                    }
+                });
+                
+                label.prepend(regexpCheckbox);
+                item.append(label);    
 
                 let removeButton = $('<button>', {
                     text: '➖',
