@@ -37,15 +37,15 @@
         // Parse the stored JSON string back to a JavaScript object
         blacklist = JSON.parse(blacklist);
         // Upgrade script: add the 'isRegexp' property to all items in the blacklist
-    for (let i = 0; i < blacklist.length; i++) {
-        if (!('isRegexp' in blacklist[i])) {
-            blacklist[i].isRegexp = false;
+        for (let i = 0; i < blacklist.length; i++) {
+            if (!('isRegexp' in blacklist[i])) {
+                blacklist[i].isRegexp = false;
+            }
         }
-    }
 
-    // Save the updated blacklist back to GM storage
-    GM_setValue('blacklist', JSON.stringify(blacklist));
-}
+        // Save the updated blacklist back to GM storage
+        GM_setValue('blacklist', JSON.stringify(blacklist));
+    }
 
     let blockPageTypes = {
         searchPage: {
@@ -69,32 +69,32 @@
             urlIncludes: 'www.bilibili.com/v/popular',
             matchPairs: [
                 { matchSelector: "div.video-card__info", parentSelector: "div.video-card" },
-                ],
+            ],
         },
         timeLine: {
             urlIncludes: 't.bilibili.com',
             matchPairs: [
                 { matchSelector: "div.bili-dyn-content", parentSelector: "div.bili-dyn-list__item" },
-                ],
+            ],
         },
         recommand: {
             urlIncludes: 'www.bilibili.com/video/BV',
             matchPairs: [
                 { matchSelector: "div.info", parentSelector: "div.video-page-card-small" },
-                ],
+            ],
         },
         reply: {
             urlIncludes: 'www.bilibili.com/video/BV',
             matchPairs: [
                 { matchSelector: "div.root-reply", parentSelector: "div.content-warp" },
                 { matchSelector: "span.reply-content-container.sub-reply-content", parentSelector: "div.sub-reply-item" },
-                ],
+            ],
         },
     };
-    
+
     let prepareRegex = function() {
         let pageInfo;
-    
+
         // Find the page info for the current URL
         for (let pageType in blockPageTypes) {
             if (window.location.href.includes(blockPageTypes[pageType].urlIncludes)) {
@@ -103,13 +103,13 @@
                 break;
             }
         }
-    
+
         if (pageInfo) {
             // Filter the blacklist to get the keywords that should be active on this page
             let activeKeywords = blacklist.filter(entry => entry[pageInfo.name])
-                                          .map(entry => entry.isRegexp ? entry.keyword : entry.keyword.replace(/[.*+\-?^${}()|[\]\\]/g, '\\$&'))
-                                          .join('|');
-    
+            .map(entry => entry.isRegexp ? entry.keyword : entry.keyword.replace(/[.*+\-?^${}()|[\]\\]/g, '\\$&'))
+            .join('|');
+
             if (activeKeywords) {
                 // Create a custom jQuery expression to match elements by regular expression
                 $.expr[":"].containsRegex = $.expr.createPseudo(function(arg) {
@@ -123,7 +123,7 @@
         }
         return null;
     }
-    
+
     let block_blacklist = function(prep){
         // Block AD
         $("svg.bili-video-card__info--ad").parents("div.bili-video-card").hide();
@@ -134,7 +134,7 @@
             prep.pageInfo.matchPairs.forEach(pair => {
                 $(pair.matchSelector + prep.containsString).parents(pair.parentSelector).hide();
             });
-    
+
             // Apply CSS modifications
             if(prep.pageInfo.cssModifications){
                 $('<style>').prop('type', 'text/css').html(prep.pageInfo.cssModifications).appendTo('head');
@@ -275,14 +275,14 @@
                         block_blacklist();
                     }
                 });
-                
+
                 let label = $('<label>', {
                     text: '正则表达式',
                     css: {
                         marginLeft: '10px'
                     }
                 });
-                
+
                 label.prepend(regexpCheckbox);
                 item.append(label);    
 
@@ -367,16 +367,16 @@
     block_blacklist(prep);
 
     let running = false;
-const observer = new MutationObserver(function(mutationsList, observer) {
-    if (!running) {
-        running = true;
-        requestAnimationFrame(function() {
-            block_blacklist(prep);
-            running = false;
-        });
-    }
-});
+    const observer = new MutationObserver(function(mutationsList, observer) {
+        if (!running) {
+            running = true;
+            requestAnimationFrame(function() {
+                block_blacklist(prep);
+                running = false;
+            });
+        }
+    });
 
-observer.observe(document.body, { childList: true, subtree: true });
+    observer.observe(document.body, { childList: true, subtree: true });
 
 })();
