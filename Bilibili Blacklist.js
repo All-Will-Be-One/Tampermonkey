@@ -97,7 +97,7 @@
         if (pageInfo) {
             // Filter the blacklist to get the keywords that should be active on this page
             let activeKeywords = blacklist.filter(entry => entry[pageInfo.name])
-                                          .map(entry => entry.keyword.replace(/[.*+\-?^${}()|[\]\\]/g, '\\$&'))
+//                                        .map(entry => entry.keyword.replace(/[.*+\-?^${}()|[\]\\]/g, '\\$&'))
                                           .join('|');
     
             if (activeKeywords) {
