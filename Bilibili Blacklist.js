@@ -51,7 +51,7 @@
         searchPage: {
             urlIncludes: 'search.bilibili.com',
             matchPairs: [
-                { matchSelector: "div.bili-video-card__info--right", parentSelector: 'div.bili-video-card' },
+                { matchSelector: "div.bili-video-card__info--right", parentSelector: 'div.col_3' },
                 { matchSelector: "div.media-card-content", parentSelector: "div.media-card" },
             ],
             cssModifications: {} 
