@@ -12,18 +12,19 @@
 // @grant        GM_xmlhttpRequest
 // @require      https://cdn.staticfile.org/jquery/3.4.1/jquery.min.js
 // @run-at document-end
+//@license MIT
 
 // ==/UserScript==
-(function() {
+(function () {
     // Define page types
     let pageTypes = ['searchPage', 'mainPage', 'leaderboard', 'timeLine', 'recommand', 'reply'];
-    let pageTypesCN = {searchPage : '搜索页面', mainPage : '主页面', leaderboard: '排行榜', timeLine: '动态', recommand: '推荐', reply: '回复'};
+    let pageTypesCN = { searchPage: '搜索页面', mainPage: '主页面', leaderboard: '排行榜', timeLine: '动态', recommand: '推荐', reply: '回复' };
 
     // Initialize blacklist with some default values
     let blacklist = GM_getValue('blacklist');
     if (blacklist === undefined) {
         blacklist = [{
-            keyword: "原神",
+            keyword: "此时一位萌新路过",
             isRegexp: false,
             searchPage: true,
             mainPage: true,
@@ -56,7 +57,7 @@
                 { matchSelector: "div.bili-video-card__info--right", parentSelector: 'div.col_3' },
                 { matchSelector: "div.media-card-content", parentSelector: "div.media-card" },
             ],
-            cssModifications: {} 
+            cssModifications: {}
         },
         mainPage: {
             urlIncludes: 'www.bilibili.com',
@@ -94,37 +95,37 @@
         },
     };
 
-    let prepareRegex = function() {
+    let prepareRegex = function () {
         // Find the page info for the current URL
-let pageInfos = [];
-for (let pageType in blockPageTypes) {
-    if (window.location.href.includes(blockPageTypes[pageType].urlIncludes)) {
-        let pageInfo = blockPageTypes[pageType];
-        pageInfo.name = pageType;
-        pageInfos.push(pageInfo);
-    }
-}
-
-let containsStrings = [];
-if (pageInfos.length > 0) {
-    pageInfos.forEach(pageInfo => {
-        // Filter the blacklist to get the keywords that should be active on this page
-        let activeKeywords = blacklist.filter(entry => entry[pageInfo.name])
-        .map(entry => entry.isRegexp ? entry.keyword : entry.keyword.replace(/[.*+\-?^${}()|[\]\\]/g, '\\$&'))
-        .join('|');
-        
-        if (activeKeywords) {
-            containsStrings.push({
-                pageInfo: pageInfo,
-                containsString: ":containsRegex('" + activeKeywords + "')"
-            });
+        let pageInfos = [];
+        for (let pageType in blockPageTypes) {
+            if (window.location.href.includes(blockPageTypes[pageType].urlIncludes)) {
+                let pageInfo = blockPageTypes[pageType];
+                pageInfo.name = pageType;
+                pageInfos.push(pageInfo);
+            }
         }
-    });
-        return containsStrings;
-    };
-}
 
-    let block_blacklist = function(prepArray){
+        let containsStrings = [];
+        if (pageInfos.length > 0) {
+            pageInfos.forEach(pageInfo => {
+                // Filter the blacklist to get the keywords that should be active on this page
+                let activeKeywords = blacklist.filter(entry => entry[pageInfo.name])
+                    .map(entry => entry.isRegexp ? entry.keyword : entry.keyword.replace(/[.*+\-?^${}()|[\]\\]/g, '\\$&'))
+                    .join('|');
+
+                if (activeKeywords) {
+                    containsStrings.push({
+                        pageInfo: pageInfo,
+                        containsString: ":containsRegex('" + activeKeywords + "')"
+                    });
+                }
+            });
+            return containsStrings;
+        };
+    }
+
+    let block_blacklist = function (prepArray) {
         // Block AD
         $("svg.bili-video-card__info--ad").parents("div.bili-video-card").hide();
         $("svg.bili-video-card__info--ad").parents("div.feed-card").hide();
@@ -132,21 +133,21 @@ if (pageInfos.length > 0) {
         if (prepArray.length > 0) {
             prepArray.forEach(prep => {
                 //console.log(prep.pageInfo.name)
-    
+
                 // Now hide all matching elements on the page
                 prep.pageInfo.matchPairs.forEach(pair => {
                     $(pair.matchSelector + prep.containsString).parents(pair.parentSelector).hide();
                 });
-    
+
                 // Apply CSS modifications
-                if(prep.pageInfo.cssModifications){
+                if (prep.pageInfo.cssModifications) {
                     $('<style>').prop('type', 'text/css').html(prep.pageInfo.cssModifications).appendTo('head');
                 }
             });
         }
     }
 
-    let reblock_blacklist = function(){
+    let reblock_blacklist = function () {
         let prepArray = prepareRegex();
         block_blacklist(prepArray);
     }
@@ -165,7 +166,7 @@ if (pageInfos.length > 0) {
             padding: '10px',
             border: '2px solid white'
         },
-        click: function() {
+        click: function () {
             let keyword = prompt('输入屏蔽关键词:');
             if (keyword) {
                 // Add the keyword with all pages selected by default
@@ -202,7 +203,7 @@ if (pageInfos.length > 0) {
             padding: '10px',
             border: '2px solid white'
         },
-        click: function() {
+        click: function () {
             if ($('#modal').length > 0) {
                 $('#modal').remove();
                 return;
@@ -245,7 +246,7 @@ if (pageInfos.length > 0) {
                     top: '10px',
                     right: '10px'
                 },
-                click: function() {
+                click: function () {
                     modal.remove();
                 }
             });
@@ -253,7 +254,7 @@ if (pageInfos.length > 0) {
             modal.append(exitButton);
 
             // Add each keyword to the modal with a '➖' button and checkboxes for each page type
-            blacklist.forEach(function(entry, index) {
+            blacklist.forEach(function (entry, index) {
                 let keyword = $('<span>', {
                     text: entry.keyword,
                     css: {
@@ -277,7 +278,7 @@ if (pageInfos.length > 0) {
                 let regexpCheckbox = $('<input>', {
                     type: 'checkbox',
                     checked: entry.isRegexp,
-                    change: function() {
+                    change: function () {
                         // Update the blacklist when the checkbox is toggled
                         entry.isRegexp = this.checked;
                         GM_setValue('blacklist', JSON.stringify(blacklist));
@@ -293,19 +294,19 @@ if (pageInfos.length > 0) {
                 });
 
                 label.prepend(regexpCheckbox);
-                item.append(label);    
+                item.append(label);
 
                 let removeButton = $('<button>', {
                     text: '➖',
                     css: {
                         marginLeft: '10px'
                     },
-                    click: function() {
+                    click: function () {
                         // Get the keyword of the current item
                         let currentKeyword = entry.keyword;
 
                         // Filter out the item with the current keyword
-                        blacklist = blacklist.filter(function(item) {
+                        blacklist = blacklist.filter(function (item) {
                             return item.keyword !== currentKeyword;
                         });
 
@@ -322,11 +323,11 @@ if (pageInfos.length > 0) {
                 item.append(removeButton);
 
                 // Add a checkbox for each page type
-                pageTypes.forEach(function(pageType) {
+                pageTypes.forEach(function (pageType) {
                     let checkbox = $('<input>', {
                         type: 'checkbox',
                         checked: entry[pageType],
-                        change: function() {
+                        change: function () {
                             // Update the blacklist when a checkbox is toggled
                             entry[pageType] = this.checked;
                             GM_setValue('blacklist', JSON.stringify(blacklist));
@@ -356,7 +357,7 @@ if (pageInfos.length > 0) {
                     margin: '0 auto',
                     marginTop: '10px'
                 },
-                click: function() {
+                click: function () {
                     modal.remove();
                     location.reload(); // refresh the page
                 }
@@ -369,9 +370,9 @@ if (pageInfos.length > 0) {
     });
 
     //define containsRegex 
-    $.expr[":"].containsRegex = $.expr.createPseudo(function(arg) {
+    $.expr[":"].containsRegex = $.expr.createPseudo(function (arg) {
         var regexp = new RegExp(arg, 'i');
-        return function(elem) {
+        return function (elem) {
             return regexp.test($(elem).text());
         };
     });
@@ -384,10 +385,10 @@ if (pageInfos.length > 0) {
     block_blacklist(prepArray);
 
     let running = false;
-    const observer = new MutationObserver(function(mutationsList, observer) {
+    const observer = new MutationObserver(function (mutationsList, observer) {
         if (!running) {
             running = true;
-            requestAnimationFrame(function() {
+            requestAnimationFrame(function () {
                 block_blacklist(prepArray);
                 running = false;
             });
