@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Bilibili Blacklist
 // @namespace    http://tampermonkey.net/
-// @version      0.8.3
+// @version      0.8.3.1
 // @description  不可逆的默认屏蔽首页广告,并在左下角添加了屏蔽词功能,并能自定义每个屏蔽词的范围(真的会有人需要这种自定义吗)
 // @author       Aporia
 // @match        *://*.bilibili.com/*
@@ -129,6 +129,7 @@
         // Block AD
         $("svg.bili-video-card__info--ad").parents("div.bili-video-card").hide();
         $("svg.bili-video-card__info--ad").parents("div.feed-card").hide();
+        $("div.video-page-special-card-small").hide();
 
         if (prepArray.length > 0) {
             prepArray.forEach(prep => {
