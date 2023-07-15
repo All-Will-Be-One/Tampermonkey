@@ -12,7 +12,7 @@
 // @grant        GM_xmlhttpRequest
 // @require      https://cdn.staticfile.org/jquery/3.4.1/jquery.min.js
 // @run-at document-end
-//@license MIT
+// @license MIT
 
 // ==/UserScript==
 (function () {
