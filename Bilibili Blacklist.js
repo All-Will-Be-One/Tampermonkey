@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Bilibili Blacklist
 // @namespace    http://tampermonkey.net/
-// @version      0.8.3.1
+// @version      0.8.4
 // @description  不可逆的默认屏蔽首页广告,并在左下角添加了屏蔽词功能,并能自定义每个屏蔽词的范围(真的会有人需要这种自定义吗)
 // @author       Aporia
 // @match        *://*.bilibili.com/*
@@ -153,14 +153,28 @@
         block_blacklist(prepArray);
     }
 
+    let wrapper = $('<div>', {
+        css: {
+            position: 'fixed',
+            bottom: '10px',
+            left: '-90px',
+            zIndex: 9999,
+            display: 'flex',
+            flexDirection: 'row',
+            opacity: 0.05
+        },
+        mouseenter: function () {
+            $(this).animate({ left: '0px', opacity: 1 }, 200);
+        },
+        mouseleave: function () {
+            $(this).animate({ left: '-90px', opacity: 0.05 }, 200);
+        }
+    });
+
     // Create the floating "B" button
     let buttonB = $('<button>', {
         text: '屏蔽',
         css: {
-            position: 'fixed',
-            bottom: '20px',
-            left: '20px',
-            zIndex: 9999,
             backgroundColor: 'gray',
             color: 'white',
             borderRadius: '8px',
@@ -192,12 +206,8 @@
 
     // Create the floating "E" button
     let buttonE = $('<button>', {
-        text: '屏蔽词管理',
+        text: '管理',
         css: {
-            position: 'fixed',
-            bottom: '20px',
-            left: '80px',
-            zIndex: 9999,
             backgroundColor: 'gray',
             color: 'white',
             borderRadius: '8px',
@@ -379,8 +389,9 @@
     });
 
     let prepArray = prepareRegex();
-    $('body').append(buttonB);
-    $('body').append(buttonE);
+
+    wrapper.append(buttonB, buttonE);
+    $('body').append(wrapper);
 
     // Run the initial blacklist block
     block_blacklist(prepArray);
